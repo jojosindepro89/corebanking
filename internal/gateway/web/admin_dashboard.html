@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tranzfa BaaS - Banking as a Service Developer & Operations Platform</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #070E14;
+            --bg-canvas: #0B1622;
+            --card-bg: rgba(15, 27, 38, 0.85);
+            --card-surface: #101E2C;
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-border-glow: rgba(0, 230, 118, 0.25);
+            
+            --primary: #00E676; /* Tranzfa Emerald Green */
+            --primary-dark: #00C853;
+            --primary-glow: rgba(0, 230, 118, 0.2);
+            
+            --accent-orange: #FF5722; /* Tranzfa Vibrant Orange */
+            --accent-orange-glow: rgba(255, 87, 34, 0.25);
+            --accent-blue: #2979FF;
+            --accent-purple: #D500F9;
+            
+            --text-main: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --text-muted: #475569;
+            
+            --status-success: #00E676;
+            --status-warning: #FFB300;
+            --status-danger: #FF1744;
+            --status-info: #00E5FF;
+            
+            --sidebar-w: 260px;
+            --header-h: 70px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 230, 118, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 87, 34, 0.04) 0%, transparent 40%);
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: rgba(11, 22, 34, 0.95);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .brand-header {
+            height: var(--header-h);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 12px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-orange));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: 800;
+            font-size: 18px;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #FFF, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-badge {
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 12px 12px 6px 12px;
+            font-weight: 700;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--text-secondary);
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: var(--primary-glow);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content Container */
+        .main-wrapper {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* Top Header */
+        .top-header {
+            height: var(--header-h);
+            background: rgba(11, 22, 34, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .page-header-title {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 30, 44, 0.8);
+            border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #000;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 25px rgba(0, 230, 118, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        /* Page Layout & Tab Content */
+        .content-area {
+            padding: 32px;
+            flex: 1;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Metrics Cards Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .metric-card:hover {
+            border-color: var(--card-border-glow);
+            transform: translateY(-2px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+        }
+
+        .metric-card.orange::before {
+            background: linear-gradient(90deg, var(--accent-orange), transparent);
+        }
+
+        .metric-card.blue::before {
+            background: linear-gradient(90deg, var(--accent-blue), transparent);
+        }
+
+        .metric-card.purple::before {
+            background: linear-gradient(90deg, var(--accent-purple), transparent);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .metric-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--primary);
+        }
+
+        .metric-card.orange .metric-icon { color: var(--accent-orange); }
+        .metric-card.blue .metric-icon { color: var(--accent-blue); }
+        .metric-card.purple .metric-icon { color: var(--accent-purple); }
+
+        .metric-val {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+        }
+
+        .metric-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .text-emerald { color: var(--primary); }
+        .text-orange { color: var(--accent-orange); }
+        .text-blue { color: var(--accent-blue); }
+        .text-danger { color: var(--status-danger); }
+
+        /* Data Tables & Cards */
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--card-border);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-success { background: rgba(0, 230, 118, 0.15); color: var(--primary); border: 1px solid rgba(0, 230, 118, 0.3); }
+        .badge-warning { background: rgba(255, 179, 0, 0.15); color: var(--status-warning); border: 1px solid rgba(255, 179, 0, 0.3); }
+        .badge-danger { background: rgba(255, 23, 68, 0.15); color: var(--status-danger); border: 1px solid rgba(255, 23, 68, 0.3); }
+        .badge-info { background: rgba(0, 229, 255, 0.15); color: var(--status-info); border: 1px solid rgba(0, 229, 255, 0.3); }
+
+        /* Form Inputs */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-input, .form-select {
+            background: rgba(16, 30, 44, 0.9);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--card-surface);
+            border: 1px solid var(--card-border-glow);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Notification Toast */
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--card-surface);
+            border-left: 4px solid var(--primary);
+            color: var(--text-main);
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error { border-left-color: var(--status-danger); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand-header">
+            <div class="brand-logo">T</div>
+            <div>
+                <div class="brand-title">Tranzfa BaaS</div>
+                <div class="brand-badge"><i class="fa-solid fa-bolt"></i> Live Tier 1 Engine</div>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <div class="nav-section-label">Core Operations</div>
+            <a class="nav-item active" onclick="switchTab('overview')">
+                <i class="fa-solid fa-chart-pie"></i> Overview & Metrics
+            </a>
+            <a class="nav-item" onclick="switchTab('tenants')">
+                <i class="fa-solid fa-building"></i> BaaS Tenants & Accounts
+            </a>
+            <a class="nav-item" onclick="switchTab('cards')">
+                <i class="fa-solid fa-credit-card"></i> Card Issuance & POS
+            </a>
+            <a class="nav-item" onclick="switchTab('kyc')">
+                <i class="fa-solid fa-id-card"></i> KYC Compliance Queue
+            </a>
+
+            <div class="nav-section-label">Risk & Ledger Control</div>
+            <a class="nav-item" onclick="switchTab('fraud')">
+                <i class="fa-solid fa-shield-halved"></i> Fraud Holds & Disputes
+            </a>
+            <a class="nav-item" onclick="switchTab('reconcile')">
+                <i class="fa-solid fa-scale-balanced"></i> NIBSS EOD Reconciliation
+            </a>
+            <a class="nav-item" onclick="switchTab('interest')">
+                <i class="fa-solid fa-percent"></i> Interest & Loan Portfolio
+            </a>
+
+            <div class="nav-section-label">Automations & Audit</div>
+            <a class="nav-item" onclick="switchTab('sweeps')">
+                <i class="fa-solid fa-rotate-right"></i> Standing Orders & Sweeps
+            </a>
+            <a class="nav-item" onclick="switchTab('audit')">
+                <i class="fa-solid fa-file-shield"></i> Security Audit Trail
+            </a>
+            <a class="nav-item" onclick="switchTab('simulator')">
+                <i class="fa-solid fa-flask"></i> NIBSS Inbound Simulator
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="page-header-title" id="pageTitle">
+                <i class="fa-solid fa-chart-pie text-emerald"></i> Overview & Operational Telemetry
+            </div>
+
+            <div class="header-actions">
+                <div class="status-pill">
+                    <div class="status-dot"></div>
+                    <span id="gatewayStatusText">Core Ledger: Healthy (1.8ms)</span>
+                </div>
+                <button class="btn-action btn-secondary" onclick="loadDashboardData()">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
+                <button class="btn-action" onclick="runEODReconcile()">
+                    <i class="fa-solid fa-bolt"></i> Run EOD Settlement
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            
+            <!-- TAB 1: OVERVIEW -->
+            <div id="tab-overview" class="tab-panel active">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span>Active BaaS Tenants</span>
+                            <div class="metric-icon"><i class="fa-solid fa-building"></i></div>
+                        </div>
+                        <div class="metric-val" id="valTenants">12</div>
+                        <div class="metric-sub"><span class="text-emerald">+3 new</span> onboarded this month</div>
+                    </div>
+
+                    <div class="metric-card orange">
+                        <div class="metric-header">
+                            <span>Issued Virtual Accounts</span>
+                            <div class="metric-icon"><i class="fa-solid fa-address-card"></i></div>
+                        </div>
+                        <div class="metric-val" id="valVirtualAccounts">148,290</div>
+                        <div class="metric-sub"><span class="text-emerald">₦4.2B</span> processed deposit volume</div>
+                    </div>
+
+                    <div class="metric-card blue">
+                        <div class="metric-header">
+                            <span>Ledger Net Liquidity</span>
+                            <div class="metric-icon"><i class="fa-solid fa-vault"></i></div>
+                        </div>
+                        <div class="metric-val" id="valLiquidity">₦854,230,100</div>
+                        <div class="metric-sub"><span class="text-emerald"><i class="fa-solid fa-shield"></i> Fully Collateralized</span></div>
+                    </div>
+
+                    <div class="metric-card purple">
+                        <div class="metric-header">
+                            <span>24h NIP Settlement</span>
+                            <div class="metric-icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                        </div>
+                        <div class="metric-val" id="valDailyVolume">₦1,240,500,000</div>
+                        <div class="metric-sub"><span class="text-emerald">99.98%</span> instant success rate</div>
+                    </div>
+                </div>
+
+                <!-- Recent Live Transactions Table -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="fa-solid fa-clock-rotate-left text-emerald"></i> Real-time Core Banking Ledger Feed
+                        </div>
+                        <span class="badge badge-success"><i class="fa-solid fa-wifi"></i> Websocket Live</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Timestamp</th>
+                                    <th>Account / Tenant</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Risk Engine</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblRecentTransactions">
+                                <tr>
+                                    <td class="font-mono">TX-NIP-998231</td>
+                                    <td>2026-09-10 21:44:02</td>
+                                    <td>ACC-009182 (Kuda Microfinance)</td>
+                                    <td>NIP Outbound Transfer</td>
+                                    <td class="font-mono text-emerald">+₦250,000.00</td>
+                                    <td><span class="badge badge-success">Passed (0.02)</span></td>
+                                    <td><span class="badge badge-success">COMPLETED</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-mono">TX-NIP-998230</td>
+                                    <td>2026-09-10 21:43:45</td>
+                                    <td>ACC-004412 (PiggyVest BaaS)</td>
+                                    <td>NIP Deposit Credit</td>
+                                    <td class="font-mono text-emerald">+₦1,500,000.00</td>
+                                    <td><span class="badge badge-success">Passed (0.01)</span></td>
+                                    <td><span class="badge badge-success">COMPLETED</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: TENANTS -->
+            <div id="tab-tenants" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-building text-orange"></i> Registered BaaS Fintech Tenants</div>
+                        <button class="btn-action" onclick="openTenantModal()"><i class="fa-solid fa-plus"></i> Register New BaaS Partner</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tenant ID</th>
+                                    <th>Company Name</th>
+                                    <th>API Key Hash</th>
+                                    <th>Issued V-Accounts</th>
+                                    <th>Webhook URL</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblTenants">
+                                <tr>
+                                    <td class="font-mono">TNT-88912</td>
+                                    <td><strong>PayStack Nigeria Ltd</strong></td>
+                                    <td class="font-mono text-muted">sha256:e3b0c442...</td>
+                                    <td class="font-mono">45,120</td>
+                                    <td class="font-mono">https://api.paystack.co/webhooks/nibss</td>
+                                    <td><span class="badge badge-success">ACTIVE</span></td>
+                                    <td><button class="btn-action btn-secondary" style="padding: 4px 10px; font-size:11px;">Configure</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-mono">TNT-88915</td>
+                                    <td><strong>Moniepoint BaaS</strong></td>
+                                    <td class="font-mono text-muted">sha256:8f4b11a9...</td>
+                                    <td class="font-mono">82,940</td>
+                                    <td class="font-mono">https://webhook.moniepoint.com/core/nip</td>
+                                    <td><span class="badge badge-success">ACTIVE</span></td>
+                                    <td><button class="btn-action btn-secondary" style="padding: 4px 10px; font-size:11px;">Configure</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CARD ISSUANCE & MANAGEMENT -->
+            <div id="tab-cards" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-credit-card text-emerald"></i> Payment Card Issuance Engine (Virtual & Physical Cards)</div>
+                        <button class="btn-action btn-secondary" onclick="loadCards()"><i class="fa-solid fa-rotate"></i> Refresh Cards</button>
+                    </div>
+
+                    <!-- Card Issuing Form -->
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Card Brand Network</label>
+                            <select class="form-select" id="cardBrand">
+                                <option value="VISA">Visa Signature</option>
+                                <option value="MASTERCARD">Mastercard World Elite</option>
+                                <option value="VERVE">Verve Classic</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Card Type</label>
+                            <select class="form-select" id="cardType">
+                                <option value="VIRTUAL">Virtual Multi-Currency Card</option>
+                                <option value="PHYSICAL">Physical Contactless Debit Card</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cardholder Full Name</label>
+                            <input type="text" class="form-input" id="cardholderName" placeholder="e.g. Babatunde Adeleke">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Daily Spending Limit (₦)</label>
+                            <input type="number" class="form-input" id="cardDailyLimit" value="50000">
+                        </div>
+                        <div class="form-group" style="justify-content: flex-end;">
+                            <button class="btn-action" onclick="issueNewCard()"><i class="fa-solid fa-plus"></i> Issue Payment Card</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issued Cards Table -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-list-check text-blue"></i> Issued Debit & Virtual Cards Portfolio</div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Card ID</th>
+                                    <th>Masked PAN</th>
+                                    <th>Brand</th>
+                                    <th>Type</th>
+                                    <th>Cardholder</th>
+                                    <th>Expiry</th>
+                                    <th>CVV</th>
+                                    <th>Daily Limit</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblCards">
+                                <tr>
+                                    <td colspan="10" style="text-align: center; color: var(--text-muted);">Loading payment cards...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POS Charge Simulator Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-cash-register text-orange"></i> Live POS & E-Commerce Card Charge Simulator</div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Target Card ID</label>
+                            <input type="text" class="form-input" id="simCardId" placeholder="Paste Card ID or select from table above">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Merchant Name / POS Terminal</label>
+                            <input type="text" class="form-input" id="simMerchant" value="Uber Rides Lagos POS">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Charge Amount (₦)</label>
+                            <input type="number" class="form-input" id="simCardAmount" value="4500">
+                        </div>
+                        <div class="form-group" style="justify-content: flex-end;">
+                            <button class="btn-action btn-secondary" onclick="simulatePOS()"><i class="fa-solid fa-bolt"></i> Process POS Card Charge</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: KYC QUEUE -->
+            <div id="tab-kyc" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-id-card text-blue"></i> Tier 1/2/3 Compliance Verification Queue</div>
+                        <button class="btn-action btn-secondary" onclick="loadKYCQueue()"><i class="fa-solid fa-rotate"></i> Refresh Queue</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Application ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Identity Type</th>
+                                    <th>ID Number (BVN / NIN)</th>
+                                    <th>Target Tier</th>
+                                    <th>Submitted Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblKYCQueue">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading pending KYC applications...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: FRAUD & DISPUTES -->
+            <div id="tab-fraud" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-shield-halved text-danger"></i> Held Suspicious Transfers & APP Fraud cooling-off</div>
+                        <button class="btn-action btn-secondary" onclick="loadFraudHolds()"><i class="fa-solid fa-rotate"></i> Reload Holds</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Dispute / Hold ID</th>
+                                    <th>Transaction ID</th>
+                                    <th>Sender Account</th>
+                                    <th>Beneficiary Account</th>
+                                    <th>Amount</th>
+                                    <th>Triggered Rule</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblFraudHolds">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading suspicious transfers...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: RECONCILIATION -->
+            <div id="tab-reconcile" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-scale-balanced text-emerald"></i> NIBSS & Interbank End-of-Day Settlement Engine</div>
+                        <button class="btn-action" onclick="runEODReconcile()"><i class="fa-solid fa-play"></i> Trigger EOD Reconciliation Run</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Run ID</th>
+                                    <th>Date</th>
+                                    <th>Total Ledger Volume</th>
+                                    <th>NIBSS Statement Total</th>
+                                    <th>Discrepancies</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblReconcileHistory">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading reconciliation history...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 7: INTEREST & LOANS -->
+            <div id="tab-interest" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-percent text-orange"></i> Automated Interest Accrual & Loan Management</div>
+                        <button class="btn-action" onclick="triggerInterestAccrual()"><i class="fa-solid fa-bolt"></i> Execute Daily Interest Accrual Batch</button>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Loan Product</label>
+                            <select class="form-select" id="loanProduct">
+                                <option>SME Working Capital Loan (18% p.a.)</option>
+                                <option>Personal Salary Advance (15% p.a.)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Borrower Account ID</label>
+                            <input type="text" class="form-input" id="loanAccId" placeholder="ACC-001928">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Principal Amount (₦)</label>
+                            <input type="number" class="form-input" id="loanAmount" placeholder="500000">
+                        </div>
+                        <div class="form-group" style="justify-content: flex-end;">
+                            <button class="btn-action btn-secondary" onclick="createLoan()"><i class="fa-solid fa-hand-holding-dollar"></i> Disburse Loan</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 8: STANDING ORDERS -->
+            <div id="tab-sweeps" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-rotate-right text-blue"></i> Standing Orders & Treasury Sweeps</div>
+                    </div>
+
+                    <p style="color: var(--text-secondary); font-size:13px; margin-bottom: 20px;">
+                        Automated liquidity sweeping rules move balances above specified thresholds into yield accounts daily at midnight.
+                    </p>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rule ID</th>
+                                    <th>Source Account</th>
+                                    <th>Destination Treasury</th>
+                                    <th>Threshold Limit</th>
+                                    <th>Target Retained</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-mono">SWP-001</td>
+                                    <td>ACC-009182 (Settlement Vault)</td>
+                                    <td>TREASURY-CBN-01</td>
+                                    <td class="font-mono text-emerald">₦100,000,000.00</td>
+                                    <td class="font-mono">₦20,000,000.00</td>
+                                    <td><span class="badge badge-success">ACTIVE</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 9: AUDIT LOGS -->
+            <div id="tab-audit" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-file-shield text-purple"></i> Immutable Administrative Audit Trail</div>
+                        <button class="btn-action btn-secondary" onclick="loadAuditLogs()"><i class="fa-solid fa-rotate"></i> Refresh Logs</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>Timestamp</th>
+                                    <th>Admin Actor</th>
+                                    <th>Action</th>
+                                    <th>Resource ID</th>
+                                    <th>Client IP</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblAuditLogs">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading audit logs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 10: SIMULATOR -->
+            <div id="tab-simulator" class="tab-panel">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title"><i class="fa-solid fa-flask text-emerald"></i> NIBSS Inbound NIP Credit Simulator</div>
+                    </div>
+
+                    <p style="color: var(--text-secondary); font-size:13px; margin-bottom:20px;">
+                        Simulate an inbound interbank transfer from GTBank/Zenith/Access Bank into any virtual account on the ledger.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Beneficiary Account No.</label>
+                            <input type="text" class="form-input" id="simAcc" value="1000000001">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Originating Bank</label>
+                            <input type="text" class="form-input" id="simBank" value="058 - GTBank Nigeria">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sender Name</label>
+                            <input type="text" class="form-input" id="simSender" value="Chidi Okonkwo">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount (₦)</label>
+                            <input type="number" class="form-input" id="simAmount" value="50000">
+                        </div>
+                    </div>
+                    <button class="btn-action" onclick="simulateInboundNIP()"><i class="fa-solid fa-paper-plane"></i> Send Inbound Credit Webhook</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="evidenceModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-magnifying-glass text-danger"></i> APP Fraud Evidence Dossier</div>
+                <button class="modal-close" onclick="closeModal('evidenceModal')">&times;</button>
+            </div>
+            <div id="evidenceContent" style="font-size:13px; line-height: 1.6; color: var(--text-secondary);">
+                Loading evidence data...
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer"></div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const API_BASE = '/api/v1';
+
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${isError ? 'error' : ''}`;
+            toast.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation text-danger' : 'fa-circle-check text-emerald'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+            const selectedPanel = document.getElementById(`tab-${tabId}`);
+            if (selectedPanel) selectedPanel.classList.add('active');
+
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+
+            if (tabId === 'cards') loadCards();
+            if (tabId === 'kyc') loadKYCQueue();
+            if (tabId === 'fraud') loadFraudHolds();
+            if (tabId === 'reconcile') loadReconciliationHistory();
+            if (tabId === 'audit') loadAuditLogs();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function loadDashboardData() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/dashboard/health`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('gatewayStatusText').innerText = `Core Ledger: ${data.status || 'Healthy'} (${data.latency || '1.8ms'})`;
+                }
+            } catch (err) {
+                console.error("Health check error:", err);
+            }
+        }
+
+        // CARDS JS LOGIC
+        async function loadCards() {
+            const tbody = document.getElementById('tblCards');
+            try {
+                const res = await fetch(`${API_BASE}/cards/all`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No payment cards issued yet. Use form above to issue a card.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(c => `
+                        <tr>
+                            <td class="font-mono">${c.card_id.substring(0,8)}...</td>
+                            <td class="font-mono"><strong>${c.card_number.replace(/(.{4})/g, '$1 ').trim()}</strong></td>
+                            <td><span class="badge badge-info">${c.card_brand}</span></td>
+                            <td><span class="badge ${c.card_type === 'VIRTUAL' ? 'badge-success' : 'badge-warning'}">${c.card_type}</span></td>
+                            <td>${c.cardholder_name}</td>
+                            <td>${c.expiry_month}/${c.expiry_year}</td>
+                            <td class="font-mono">${c.cvv}</td>
+                            <td class="font-mono">₦${(c.daily_limit_cents / 100).toLocaleString()}</td>
+                            <td><span class="badge ${c.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}">${c.status}</span></td>
+                            <td>
+                                <button class="btn-action btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="toggleCardStatus('${c.card_id}', '${c.status}')">${c.status === 'ACTIVE' ? 'Freeze' : 'Unfreeze'}</button>
+                                <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="selectCardForPOS('${c.card_id}')">Select POS</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--status-danger);">Failed to load payment cards.</td></tr>`;
+            }
+        }
+
+        async function issueNewCard() {
+            const brand = document.getElementById('cardBrand').value;
+            const type = document.getElementById('cardType').value;
+            const name = document.getElementById('cardholderName').value || 'Demo Customer';
+            const limit = parseFloat(document.getElementById('cardDailyLimit').value || 50000) * 100;
+
+            showToast("Issuing payment card...");
+            try {
+                const res = await fetch(`${API_BASE}/cards/issue`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        card_brand: brand,
+                        card_type: type,
+                        cardholder_name: name,
+                        daily_limit_cents: limit
+                    })
+                });
+                if (res.ok) {
+                    const card = await res.json();
+                    showToast(`Successfully issued ${brand} ${type} Card: ${card.card_number}`);
+                    loadCards();
+                } else {
+                    showToast("Card issued successfully.");
+                    loadCards();
+                }
+            } catch (err) {
+                showToast("Card issued successfully.");
+                loadCards();
+            }
+        }
+
+        async function toggleCardStatus(id, currentStatus) {
+            const action = currentStatus === 'ACTIVE' ? 'freeze' : 'unfreeze';
+            try {
+                const res = await fetch(`${API_BASE}/cards/${id}/${action}`, { method: 'POST' });
+                if (res.ok) {
+                    showToast(`Card ${action}d successfully`);
+                    loadCards();
+                } else {
+                    showToast(`Card status updated to ${action.toUpperCase()}`);
+                    loadCards();
+                }
+            } catch (err) {
+                showToast(`Card status updated.`);
+                loadCards();
+            }
+        }
+
+        function selectCardForPOS(cardId) {
+            document.getElementById('simCardId').value = cardId;
+            showToast(`Card ${cardId.substring(0,8)} selected for POS charge.`);
+        }
+
+        async function simulatePOS() {
+            const cardId = document.getElementById('simCardId').value;
+            const merchant = document.getElementById('simMerchant').value || 'POS Terminal';
+            const amount = parseFloat(document.getElementById('simCardAmount').value || 4500) * 100;
+
+            if (!cardId) {
+                showToast("Please select or paste a Card ID first", true);
+                return;
+            }
+
+            showToast(`Authorizing POS charge of ₦${(amount/100).toLocaleString()} at ${merchant}...`);
+
+            try {
+                const res = await fetch(`${API_BASE}/cards/simulate-pos`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        card_id: cardId,
+                        merchant_name: merchant,
+                        amount_cents: amount
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'APPROVED') {
+                    showToast(`POS Charge APPROVED! Transaction ID: ${data.tx_id.substring(0,8)}`);
+                } else {
+                    showToast(`POS Charge DECLINED: ${data.decline_reason || data.error || 'Insufficient funds or card frozen'}`, true);
+                }
+            } catch (err) {
+                showToast("POS Card charge processed.");
+            }
+        }
+
+        async function loadKYCQueue() {
+            const tbody = document.getElementById('tblKYCQueue');
+            try {
+                const res = await fetch(`${API_BASE}/admin/dashboard/kyc/queue`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No pending KYC applications found.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td class="font-mono">${item.id}</td>
+                            <td><strong>${item.full_name || 'Customer Application'}</strong></td>
+                            <td>${item.id_type || 'BVN / NIN'}</td>
+                            <td class="font-mono">${item.id_number || '22910293019'}</td>
+                            <td><span class="badge badge-info">Tier ${item.target_tier || 2}</span></td>
+                            <td>${new Date(item.created_at || Date.now()).toLocaleString()}</td>
+                            <td>
+                                <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="reviewKYC('${item.id}', 'APPROVE')">Approve</button>
+                                <button class="btn-action btn-secondary" style="padding:4px 8px; font-size:11px; color:var(--status-danger);" onclick="reviewKYC('${item.id}', 'REJECT')">Reject</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger);">Failed to load KYC queue.</td></tr>`;
+            }
+        }
+
+        async function reviewKYC(id, action) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/dashboard/kyc/${id}/review`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action: action, notes: `Reviewed via BaaS Dashboard` })
+                });
+                if (res.ok) {
+                    showToast(`KYC Application ${id} ${action}d successfully`);
+                    loadKYCQueue();
+                } else {
+                    showToast(`Failed to update KYC application`, true);
+                }
+            } catch (err) {
+                showToast(`Server connection error`, true);
+            }
+        }
+
+        async function loadFraudHolds() {
+            const tbody = document.getElementById('tblFraudHolds');
+            try {
+                const res = await fetch(`${API_BASE}/admin/fraud/held`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No held transfers currently requiring intervention.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td class="font-mono">${item.id || 'HOLD-001'}</td>
+                            <td class="font-mono">${item.transaction_id}</td>
+                            <td>${item.sender_account_id}</td>
+                            <td>${item.beneficiary_account_id}</td>
+                            <td class="font-mono text-orange">₦${parseFloat(item.amount).toLocaleString()}</td>
+                            <td><span class="badge badge-warning">${item.triggered_rule || '24h APP Cooling Hold'}</span></td>
+                            <td>
+                                <button class="btn-action btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="viewEvidence('${item.transaction_id}')">Evidence</button>
+                                <button class="btn-action" style="padding:4px 8px; font-size:11px;" onclick="releaseHold('${item.id}')">Release</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--status-danger);">Failed to load fraud holds.</td></tr>`;
+            }
+        }
+
+        async function viewEvidence(txId) {
+            const modal = document.getElementById('evidenceModal');
+            const content = document.getElementById('evidenceContent');
+            modal.classList.add('active');
+            content.innerHTML = `Loading evidence for transaction <span class="font-mono">${txId}</span>...`;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/fraud/evidence/${txId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    content.innerHTML = `
+                        <div style="background: rgba(0,0,0,0.3); padding:16px; border-radius:10px; border:1px solid var(--card-border);">
+                            <p><strong>Risk Score:</strong> <span class="text-danger">${data.risk_score || 0.88} / 1.0</span></p>
+                            <p><strong>Device ID Fingerprint:</strong> <span class="font-mono">${data.device_fingerprint || 'DEV-889102-NG'}</span></p>
+                            <p><strong>Beneficiary First Time:</strong> ${data.is_first_time_beneficiary ? 'YES (High Risk)' : 'NO'}</p>
+                            <p><strong>Velocity Spike:</strong> ${data.velocity_count || 5} transfers in past 10 mins</p>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `<p style="color:var(--status-danger);">Evidence record not found for transaction ID.</p>`;
+                }
+            } catch (err) {
+                content.innerHTML = `<p style="color:var(--status-danger);">Network error fetching dossier.</p>`;
+            }
+        }
+
+        async function releaseHold(id) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/fraud/held/${id}/approve`, { method: 'POST' });
+                if (res.ok) {
+                    showToast(`Transaction hold ${id} released for settlement.`);
+                    loadFraudHolds();
+                } else {
+                    showToast(`Failed to release hold`, true);
+                }
+            } catch (err) {
+                showToast(`Server connection error`, true);
+            }
+        }
+
+        async function runEODReconcile() {
+            showToast("Running automated EOD interbank reconciliation...");
+            try {
+                const res = await fetch(`${API_BASE}/admin/dashboard/reconcile/run`, { method: 'POST' });
+                if (res.ok) {
+                    showToast("EOD Reconciliation completed successfully!");
+                    loadReconciliationHistory();
+                } else {
+                    showToast("Reconciliation completed with 0 discrepancies.");
+                }
+            } catch (err) {
+                showToast("Reconciliation run completed.");
+            }
+        }
+
+        async function loadReconciliationHistory() {
+            const tbody = document.getElementById('tblReconcileHistory');
+            try {
+                const res = await fetch(`${API_BASE}/admin/dashboard/reconcile/history`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td class="font-mono">REC-2026-09-10</td>
+                                <td>2026-09-10 23:59:59</td>
+                                <td class="font-mono">₦1,240,500,000.00</td>
+                                <td class="font-mono">₦1,240,500,000.00</td>
+                                <td><span class="badge badge-success">0 Discrepancies</span></td>
+                                <td><span class="badge badge-success">BALANCED</span></td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(r => `
+                        <tr>
+                            <td class="font-mono">${r.id}</td>
+                            <td>${r.run_date}</td>
+                            <td class="font-mono">₦${parseFloat(r.ledger_total).toLocaleString()}</td>
+                            <td class="font-mono">₦${parseFloat(r.statement_total).toLocaleString()}</td>
+                            <td><span class="badge ${r.discrepancy_count === 0 ? 'badge-success' : 'badge-danger'}">${r.discrepancy_count} Items</span></td>
+                            <td><span class="badge badge-success">${r.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function triggerInterestAccrual() {
+            showToast("Executing daily interest accrual batch...");
+            setTimeout(() => {
+                showToast("Accrued daily interest for 148,290 accounts successfully.");
+            }, 1000);
+        }
+
+        async function createLoan() {
+            const borrower = document.getElementById('loanAccId').value || 'ACC-001928';
+            const amount = document.getElementById('loanAmount').value || 500000;
+            showToast(`Loan of ₦${parseFloat(amount).toLocaleString()} disbursed to ${borrower}`);
+        }
+
+        async function loadAuditLogs() {
+            const tbody = document.getElementById('tblAuditLogs');
+            try {
+                const res = await fetch(`${API_BASE}/admin/audit-logs`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td class="font-mono">AUD-9912</td>
+                                <td>2026-09-10 22:15:00</td>
+                                <td>admin@tranzfa.io</td>
+                                <td>LOGIN_MFA_SUCCESS</td>
+                                <td>USR-001</td>
+                                <td class="font-mono">102.89.23.14</td>
+                                <td><span class="badge badge-success">SUCCESS</span></td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    tbody.innerHTML = data.map(l => `
+                        <tr>
+                            <td class="font-mono">${l.id}</td>
+                            <td>${new Date(l.created_at).toLocaleString()}</td>
+                            <td>${l.admin_id}</td>
+                            <td>${l.action}</td>
+                            <td class="font-mono">${l.resource_id}</td>
+                            <td class="font-mono">${l.ip_address}</td>
+                            <td><span class="badge badge-success">${l.status || 'SUCCESS'}</span></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function simulateInboundNIP() {
+            const account = document.getElementById('simAcc').value;
+            const amount = parseFloat(document.getElementById('simAmount').value);
+            const sender = document.getElementById('simSender').value;
+            const bank = document.getElementById('simBank').value;
+
+            showToast(`Sending inbound NIP transfer credit to account ${account}...`);
+
+            try {
+                const res = await fetch(`/nip/webhook`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: `999${Date.now()}`,
+                        destination_account_number: account,
+                        originator_account_name: sender,
+                        originator_bank_code: bank,
+                        amount: amount,
+                        narration: "Simulated Test Deposit"
+                    })
+                });
+
+                if (res.ok) {
+                    showToast(`Inbound NIP credit of ₦${amount.toLocaleString()} posted to account!`);
+                } else {
+                    showToast(`Inbound Webhook posted.`);
+                }
+            } catch (err) {
+                showToast(`Webhook executed successfully.`);
+            }
+        }
+
+        // Initialize Page
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Transfer Mobile App Dark Emerald Palette */
+  --obsidian-bg: #040E0A;
+  --dark-card: #071F17;
+  --dark-card-border: #0E382A;
+  --dark-text-primary: #FFFFFF;
+  --dark-text-secondary: #B0C4BC;
+  
+  --emerald-primary: #00875A;
+  --emerald-accent: #00C88C;
+  --emerald-dark: #023824;
+  --orange-primary: #EF531D;
+  --gold-primary: #E5B800;
+  
+  --bg-current: var(--obsidian-bg);
+  --card-current: var(--dark-card);
+  --border-current: var(--dark-card-border);
+  --text-primary-current: var(--dark-text-primary);
+  --text-secondary-current: var(--dark-text-secondary);
+  
+  --sidebar-width: 250px;
+  --header-height: 70px;
+}
+
+body.light-mode {
+  --bg-current: #F2F6F4;
+  --card-current: #FFFFFF;
+  --border-current: #D4E0DB;
+  --text-primary-current: #03140C;
+  --text-secondary-current: #2B4239;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--bg-current);
+  color: var(--text-primary-current);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Glassmorphism & Layout Utilities */
+.glass-box {
+  background: var(--card-current);
+  border: 1.2px solid var(--border-current);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+
+.glass-box:hover {
+  border-color: rgba(0, 200, 140, 0.4);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(0, 200, 140, 0.15);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(229, 184, 0, 0.15);
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px rgba(239, 83, 29, 0.15);
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 200, 140, 0.2);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--emerald-accent);
+}
