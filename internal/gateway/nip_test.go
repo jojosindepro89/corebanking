@@ -88,7 +88,7 @@ func setupNIPTest(t *testing.T) (*sql.DB, http.Handler, *gwservice.AuthService, 
 	nipHandler := gwapi.NewNIPHandler(nipService)
 	fraudHandler := gwapi.NewFraudHandler(fraudService)
 
-	router := gwapi.NewGatewayRouter(handler, dashHandler, nipHandler, fraudHandler, nil, authSvc, gRepo, []string{"*"})
+	router := gwapi.NewGatewayRouter(handler, dashHandler, nipHandler, fraudHandler, nil, nil, authSvc, gRepo, []string{"*"})
 
 	return db, router, authSvc, nipService, mockProvider, fraudService
 }

@@ -84,6 +84,10 @@ func main() {
 	cardService := gwservice.NewCardService(gRepo, cService)
 	cardHandler := gwapi.NewCardHandler(cardService)
 
+	// Multi-Currency FX Rate Lock & Swap Engine
+	fxService := gwservice.NewFXService(gRepo, cService)
+	fxHandler := gwapi.NewFXHandler(fxService)
+
 	handler := gwapi.NewGatewayHandler(gService)
 
 	// Seed default Admin User for Admin Dashboard UI
@@ -110,18 +114,18 @@ func main() {
 		if acc != nil {
 			// Seed a default Virtual Visa Card for demo user
 			_, _ = cardService.IssueCard(ctx, gwservice.IssueCardRequest{
-				UserID:         demoUser.UserID,
-				AccountID:      acc.AccountID,
-				CardBrand:      "VISA",
-				CardType:       "VIRTUAL",
-				CardholderName: "Demo Customer",
+				UserID:          demoUser.UserID,
+				AccountID:       acc.AccountID,
+				CardBrand:       "VISA",
+				CardType:        "VIRTUAL",
+				CardholderName:  "Demo Customer",
 				DailyLimitCents: 5000000,
 			})
 		}
 	}
 	log.Printf("Default Demo User registered/verified (Email: demo@user.com, Password: UserPass123!)")
 
-	router := gwapi.NewGatewayRouter(handler, dashHandler, nipHandler, fraudHandler, cardHandler, authSvc, gRepo, []string{"*"})
+	router := gwapi.NewGatewayRouter(handler, dashHandler, nipHandler, fraudHandler, cardHandler, fxHandler, authSvc, gRepo, []string{"*"})
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("API Gateway Service running on http://localhost%s", addr)
@@ -140,6 +144,7 @@ func runMigrations(db *sql.DB) {
 		"migrations/006_core_banking_expansion.sql",
 		"migrations/007_card_issuance.sql",
 		"migrations/008_auth_enhancements.sql",
+		"migrations/009_fx_engine.sql",
 	}
 
 	for _, file := range files {

@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/httprate"
 )
 
-func NewGatewayRouter(handler *GatewayHandler, dashHandler *AdminDashboardHandler, nipHandler *NIPHandler, fraudHandler *FraudHandler, cardHandler *CardHandler, authSvc *gwservice.AuthService, repo *gwrepo.GatewayRepository, allowedOrigins []string) http.Handler {
+func NewGatewayRouter(handler *GatewayHandler, dashHandler *AdminDashboardHandler, nipHandler *NIPHandler, fraudHandler *FraudHandler, cardHandler *CardHandler, fxHandler *FXHandler, authSvc *gwservice.AuthService, repo *gwrepo.GatewayRepository, allowedOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
 	// Base middleware stack
@@ -138,6 +138,18 @@ func NewGatewayRouter(handler *GatewayHandler, dashHandler *AdminDashboardHandle
 			}
 			r.Route("/nip", mountNIPRoutes)
 			r.Route("/api/v1/nip", mountNIPRoutes)
+		}
+
+		// Multi-Currency FX Rate Lock & Swap Engine
+		if fxHandler != nil {
+			mountFXRoutes := func(r chi.Router) {
+				r.Use(httprate.LimitByIP(30, 1*time.Minute))
+				r.Get("/rates", fxHandler.GetRatesHandler)
+				r.Post("/quote", fxHandler.CreateQuoteHandler)
+				r.Post("/execute", fxHandler.ExecuteSwapHandler)
+			}
+			r.Route("/fx", mountFXRoutes)
+			r.Route("/api/v1/fx", mountFXRoutes)
 		}
 
 		// KYC Submission

@@ -67,7 +67,7 @@ func setupDashboardTest(t *testing.T) (*sql.DB, http.Handler, *gwservice.AuthSer
 
 	handler := gwapi.NewGatewayHandler(gService)
 	dashHandler := gwapi.NewAdminDashboardHandler(dashSvc)
-	router := gwapi.NewGatewayRouter(handler, dashHandler, nil, nil, nil, authSvc, gRepo, []string{"*"})
+	router := gwapi.NewGatewayRouter(handler, dashHandler, nil, nil, nil, nil, authSvc, gRepo, []string{"*"})
 
 	return db, router, authSvc, gService, dashSvc, reconciler
 }
