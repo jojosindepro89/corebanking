@@ -82,6 +82,10 @@ func (h *GatewayHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.LoginUser(r.Context(), req)
 	if err != nil {
+		if errors.Is(err, gwdomain.ErrAccountLocked) {
+			respondJSON(w, http.StatusLocked, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, gwdomain.ErrMFARequired) {
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "MFA_REQUIRED", "message": "2FA TOTP code required"})
 			return
@@ -148,6 +152,105 @@ func (h *GatewayHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, resp)
+}
+
+func (h *GatewayHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	userID, _ := getUserIDFromContext(r)
+	var req gwdomain.LogoutRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if err := h.svc.LogoutUser(r.Context(), userID, req.RefreshToken); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "logged out successfully"})
+}
+
+func (h *GatewayHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := h.svc.RevokeAllSessions(r.Context(), userID); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "all user sessions revoked successfully"})
+}
+
+func (h *GatewayHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+		return
+	}
+
+	var req gwdomain.ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+		return
+	}
+
+	if err := h.svc.ChangePassword(r.Context(), userID, req); err != nil {
+		if errors.Is(err, gwdomain.ErrInvalidCredentials) || errors.Is(err, gwdomain.ErrWeakPassword) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "password updated successfully"})
+}
+
+func (h *GatewayHandler) SetupPIN(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+		return
+	}
+
+	var req gwdomain.SetupPINRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+		return
+	}
+
+	if err := h.svc.SetupTransactionPIN(r.Context(), userID, req.PIN); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "transaction PIN setup successfully"})
+}
+
+func (h *GatewayHandler) VerifyPIN(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+		return
+	}
+
+	var req gwdomain.VerifyPINRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+		return
+	}
+
+	if err := h.svc.VerifyTransactionPIN(r.Context(), userID, req.PIN); err != nil {
+		if errors.Is(err, gwdomain.ErrPINLocked) || errors.Is(err, gwdomain.ErrInvalidPIN) || errors.Is(err, gwdomain.ErrPINNotSetup) {
+			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "transaction PIN verified"})
 }
 
 // 2. Account Handlers

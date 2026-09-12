@@ -56,11 +56,18 @@ func setupGatewayTest(t *testing.T) (*sql.DB, http.Handler, *gwservice.AuthServi
 		if err != nil {
 			migr2, _ = os.ReadFile("migrations/002_api_gateway.sql")
 		}
+		migr8, err := os.ReadFile("../../migrations/008_auth_enhancements.sql")
+		if err != nil {
+			migr8, _ = os.ReadFile("migrations/008_auth_enhancements.sql")
+		}
 		if len(migr1) > 0 {
 			_, _ = db.Exec(string(migr1))
 		}
 		if len(migr2) > 0 {
 			_, _ = db.Exec(string(migr2))
+		}
+		if len(migr8) > 0 {
+			_, _ = db.Exec(string(migr8))
 		}
 	})
 

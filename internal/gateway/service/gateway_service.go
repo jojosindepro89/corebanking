@@ -36,8 +36,12 @@ func NewGatewayService(repo *gwrepo.GatewayRepository, coreSvc *coreService.Serv
 // User Registration & Authentication
 
 func (s *GatewayService) RegisterUser(ctx context.Context, req gwdomain.RegisterRequest) (*gwdomain.UserView, error) {
-	if strings.TrimSpace(req.Email) == "" || len(req.Password) < 8 {
-		return nil, fmt.Errorf("invalid registration input: password must be at least 8 characters")
+	if strings.TrimSpace(req.Email) == "" {
+		return nil, fmt.Errorf("email cannot be empty")
+	}
+
+	if err := s.authSvc.ValidatePasswordStrength(req.Password); err != nil {
+		return nil, err
 	}
 
 	hash, err := s.authSvc.HashPassword(req.Password)
@@ -65,11 +69,19 @@ func (s *GatewayService) RegisterUser(ctx context.Context, req gwdomain.Register
 		return nil, err
 	}
 
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &user.UserID,
+		Email:     user.Email,
+		EventType: "REGISTER_SUCCESS",
+	})
+
 	return &gwdomain.UserView{
 		UserID:     user.UserID,
 		Email:      user.Email,
 		Role:       user.Role,
 		MFAEnabled: user.MFAEnabled,
+		PINSetup:   false,
+		IsLocked:   false,
 	}, nil
 }
 
@@ -79,21 +91,197 @@ func (s *GatewayService) LoginUser(ctx context.Context, req gwdomain.LoginReques
 		return nil, gwdomain.ErrInvalidCredentials
 	}
 
+	// 1. Account Lockout Check
+	if user.LockedUntil != nil && time.Now().UTC().Before(*user.LockedUntil) {
+		_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+			UserID:    &user.UserID,
+			Email:     user.Email,
+			EventType: "LOGIN_ATTEMPT_WHILE_LOCKED",
+		})
+		return nil, gwdomain.ErrAccountLocked
+	}
+
+	// 2. Password Check & Failed Attempt Tracking
 	if !s.authSvc.CheckPassword(req.Password, user.PasswordHash) {
+		count, _ := s.repo.IncrementFailedLoginAttempts(ctx, s.repo.DB(), user.UserID)
+		if count >= 5 {
+			_ = s.repo.LockAccount(ctx, s.repo.DB(), user.UserID, 15*time.Minute)
+			_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+				UserID:    &user.UserID,
+				Email:     user.Email,
+				EventType: "ACCOUNT_LOCKED",
+			})
+			return nil, gwdomain.ErrAccountLocked
+		}
+		_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+			UserID:    &user.UserID,
+			Email:     user.Email,
+			EventType: "LOGIN_FAILED",
+		})
 		return nil, gwdomain.ErrInvalidCredentials
 	}
 
-	// Verify MFA if user has enabled MFA
+	// Reset failed login attempts on successful password check
+	_ = s.repo.ResetFailedLoginAttempts(ctx, s.repo.DB(), user.UserID)
+
+	// 3. MFA Check
 	if user.MFAEnabled {
 		if req.MFACode == "" {
 			return nil, gwdomain.ErrMFARequired
 		}
 		if !s.authSvc.VerifyMFACode(user.MFASecret, req.MFACode) {
+			_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+				UserID:    &user.UserID,
+				Email:     user.Email,
+				EventType: "MFA_FAILED",
+			})
 			return nil, gwdomain.ErrInvalidMFACode
 		}
 	}
 
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &user.UserID,
+		Email:     user.Email,
+		EventType: "LOGIN_SUCCESS",
+	})
+
 	return s.issueTokenPair(ctx, user)
+}
+
+func (s *GatewayService) LogoutUser(ctx context.Context, userID uuid.UUID, rawRefreshToken string) error {
+	if rawRefreshToken != "" {
+		tokenHash := s.authSvc.HashRefreshToken(rawRefreshToken)
+		record, err := s.repo.GetRefreshTokenByHash(ctx, s.repo.DB(), tokenHash)
+		if err == nil && record != nil {
+			_ = s.repo.RevokeRefreshToken(ctx, s.repo.DB(), record.TokenID)
+		}
+	}
+
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &userID,
+		EventType: "LOGOUT",
+	})
+
+	return nil
+}
+
+func (s *GatewayService) RevokeAllSessions(ctx context.Context, userID uuid.UUID) error {
+	if err := s.repo.RevokeUserRefreshTokens(ctx, s.repo.DB(), userID); err != nil {
+		return err
+	}
+
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &userID,
+		EventType: "REVOKE_ALL_SESSIONS",
+	})
+
+	return nil
+}
+
+func (s *GatewayService) ChangePassword(ctx context.Context, userID uuid.UUID, req gwdomain.ChangePasswordRequest) error {
+	user, err := s.repo.GetUserByID(ctx, s.repo.DB(), userID)
+	if err != nil {
+		return err
+	}
+
+	if !s.authSvc.CheckPassword(req.OldPassword, user.PasswordHash) {
+		return gwdomain.ErrInvalidCredentials
+	}
+
+	if err := s.authSvc.ValidatePasswordStrength(req.NewPassword); err != nil {
+		return err
+	}
+
+	newHash, err := s.authSvc.HashPassword(req.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.UpdatePassword(ctx, s.repo.DB(), userID, newHash); err != nil {
+		return err
+	}
+
+	// Revoke all existing sessions so user must log in again
+	_ = s.repo.RevokeUserRefreshTokens(ctx, s.repo.DB(), userID)
+
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &userID,
+		Email:     user.Email,
+		EventType: "PASSWORD_CHANGED",
+	})
+
+	return nil
+}
+
+func (s *GatewayService) SetupTransactionPIN(ctx context.Context, userID uuid.UUID, pin string) error {
+	pinHash, err := s.authSvc.HashPIN(pin)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.SetTransactionPIN(ctx, s.repo.DB(), userID, pinHash); err != nil {
+		return err
+	}
+
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &userID,
+		EventType: "PIN_SETUP",
+	})
+
+	return nil
+}
+
+func (s *GatewayService) VerifyTransactionPIN(ctx context.Context, userID uuid.UUID, pin string) error {
+	user, err := s.repo.GetUserByID(ctx, s.repo.DB(), userID)
+	if err != nil {
+		return err
+	}
+
+	// 1. PIN Lockout check
+	if user.PINLockedUntil != nil && time.Now().UTC().Before(*user.PINLockedUntil) {
+		_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+			UserID:    &userID,
+			Email:     user.Email,
+			EventType: "PIN_ATTEMPT_WHILE_LOCKED",
+		})
+		return gwdomain.ErrPINLocked
+	}
+
+	// 2. PIN setup check
+	if user.PINHash == "" {
+		return gwdomain.ErrPINNotSetup
+	}
+
+	// 3. PIN verification & failed attempt tracking
+	if !s.authSvc.CheckPIN(pin, user.PINHash) {
+		count, _ := s.repo.IncrementFailedPINAttempts(ctx, s.repo.DB(), userID)
+		if count >= 3 {
+			_ = s.repo.LockTransactionPIN(ctx, s.repo.DB(), userID, 1*time.Hour)
+			_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+				UserID:    &userID,
+				Email:     user.Email,
+				EventType: "PIN_LOCKED",
+			})
+			return gwdomain.ErrPINLocked
+		}
+		_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+			UserID:    &userID,
+			Email:     user.Email,
+			EventType: "PIN_FAILED",
+		})
+		return gwdomain.ErrInvalidPIN
+	}
+
+	// Reset failed PIN attempts
+	_ = s.repo.ResetFailedPINAttempts(ctx, s.repo.DB(), userID)
+
+	_ = s.repo.LogAuthEvent(ctx, s.repo.DB(), &gwdomain.AuthEventRecord{
+		UserID:    &userID,
+		Email:     user.Email,
+		EventType: "PIN_VERIFIED",
+	})
+
+	return nil
 }
 
 func (s *GatewayService) issueTokenPair(ctx context.Context, user *gwdomain.User) (*gwdomain.TokenResponse, error) {
@@ -123,6 +311,8 @@ func (s *GatewayService) issueTokenPair(ctx context.Context, user *gwdomain.User
 		return nil, err
 	}
 
+	isLocked := user.LockedUntil != nil && time.Now().UTC().Before(*user.LockedUntil)
+
 	return &gwdomain.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: rawRefreshToken,
@@ -134,6 +324,8 @@ func (s *GatewayService) issueTokenPair(ctx context.Context, user *gwdomain.User
 			Email:      user.Email,
 			Role:       user.Role,
 			MFAEnabled: user.MFAEnabled,
+			PINSetup:   user.PINHash != "",
+			IsLocked:   isLocked,
 		},
 	}, nil
 }
@@ -198,6 +390,8 @@ func (s *GatewayService) RotateRefreshToken(ctx context.Context, rawRefreshToken
 		return nil, err
 	}
 
+	isLocked := user.LockedUntil != nil && time.Now().UTC().Before(*user.LockedUntil)
+
 	return &gwdomain.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: newRawRefresh,
@@ -209,6 +403,8 @@ func (s *GatewayService) RotateRefreshToken(ctx context.Context, rawRefreshToken
 			Email:      user.Email,
 			Role:       user.Role,
 			MFAEnabled: user.MFAEnabled,
+			PINSetup:   user.PINHash != "",
+			IsLocked:   isLocked,
 		},
 	}, nil
 }

@@ -57,14 +57,19 @@ func (r *GatewayRepository) CreateUser(ctx context.Context, exec repository.Exec
 
 func (r *GatewayRepository) GetUserByEmail(ctx context.Context, exec repository.Executable, email string) (*gwdomain.User, error) {
 	query := `
-		SELECT user_id, email, password_hash, role, COALESCE(mfa_secret, ''), mfa_enabled, created_at, updated_at
+		SELECT user_id, email, password_hash, role, COALESCE(mfa_secret, ''), mfa_enabled,
+		       failed_login_attempts, locked_until, COALESCE(pin_hash, ''), failed_pin_attempts, pin_locked_until,
+		       created_at, updated_at
 		FROM users
 		WHERE LOWER(email) = LOWER($1)
 	`
 	user := &gwdomain.User{}
 	var roleStr string
+	var lockedUntil, pinLockedUntil sql.NullTime
 	err := exec.QueryRowContext(ctx, query, strings.TrimSpace(email)).Scan(
-		&user.UserID, &user.Email, &user.PasswordHash, &roleStr, &user.MFASecret, &user.MFAEnabled, &user.CreatedAt, &user.UpdatedAt,
+		&user.UserID, &user.Email, &user.PasswordHash, &roleStr, &user.MFASecret, &user.MFAEnabled,
+		&user.FailedLoginAttempts, &lockedUntil, &user.PINHash, &user.FailedPINAttempts, &pinLockedUntil,
+		&user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -73,19 +78,30 @@ func (r *GatewayRepository) GetUserByEmail(ctx context.Context, exec repository.
 		return nil, err
 	}
 	user.Role = gwdomain.UserRole(roleStr)
+	if lockedUntil.Valid {
+		user.LockedUntil = &lockedUntil.Time
+	}
+	if pinLockedUntil.Valid {
+		user.PINLockedUntil = &pinLockedUntil.Time
+	}
 	return user, nil
 }
 
 func (r *GatewayRepository) GetUserByID(ctx context.Context, exec repository.Executable, userID uuid.UUID) (*gwdomain.User, error) {
 	query := `
-		SELECT user_id, email, password_hash, role, COALESCE(mfa_secret, ''), mfa_enabled, created_at, updated_at
+		SELECT user_id, email, password_hash, role, COALESCE(mfa_secret, ''), mfa_enabled,
+		       failed_login_attempts, locked_until, COALESCE(pin_hash, ''), failed_pin_attempts, pin_locked_until,
+		       created_at, updated_at
 		FROM users
 		WHERE user_id = $1
 	`
 	user := &gwdomain.User{}
 	var roleStr string
+	var lockedUntil, pinLockedUntil sql.NullTime
 	err := exec.QueryRowContext(ctx, query, userID).Scan(
-		&user.UserID, &user.Email, &user.PasswordHash, &roleStr, &user.MFASecret, &user.MFAEnabled, &user.CreatedAt, &user.UpdatedAt,
+		&user.UserID, &user.Email, &user.PasswordHash, &roleStr, &user.MFASecret, &user.MFAEnabled,
+		&user.FailedLoginAttempts, &lockedUntil, &user.PINHash, &user.FailedPINAttempts, &pinLockedUntil,
+		&user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -94,6 +110,12 @@ func (r *GatewayRepository) GetUserByID(ctx context.Context, exec repository.Exe
 		return nil, err
 	}
 	user.Role = gwdomain.UserRole(roleStr)
+	if lockedUntil.Valid {
+		user.LockedUntil = &lockedUntil.Time
+	}
+	if pinLockedUntil.Valid {
+		user.PINLockedUntil = &pinLockedUntil.Time
+	}
 	return user, nil
 }
 
@@ -433,4 +455,115 @@ func (r *GatewayRepository) SearchAPIAuditLogs(ctx context.Context, exec reposit
 		logs = append(logs, l)
 	}
 	return logs, rows.Err()
+}
+
+// Auth Enhancements Repo Methods
+
+func (r *GatewayRepository) IncrementFailedLoginAttempts(ctx context.Context, exec repository.Executable, userID uuid.UUID) (int, error) {
+	query := `
+		UPDATE users
+		SET failed_login_attempts = failed_login_attempts + 1, updated_at = NOW()
+		WHERE user_id = $1
+		RETURNING failed_login_attempts
+	`
+	var count int
+	err := exec.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
+func (r *GatewayRepository) LockAccount(ctx context.Context, exec repository.Executable, userID uuid.UUID, lockDuration time.Duration) error {
+	query := `
+		UPDATE users
+		SET locked_until = $1, updated_at = NOW()
+		WHERE user_id = $2
+	`
+	lockedUntil := time.Now().UTC().Add(lockDuration)
+	_, err := exec.ExecContext(ctx, query, lockedUntil, userID)
+	return err
+}
+
+func (r *GatewayRepository) ResetFailedLoginAttempts(ctx context.Context, exec repository.Executable, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET failed_login_attempts = 0, locked_until = NULL, updated_at = NOW()
+		WHERE user_id = $1
+	`
+	_, err := exec.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *GatewayRepository) UpdatePassword(ctx context.Context, exec repository.Executable, userID uuid.UUID, passwordHash string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $1, updated_at = NOW()
+		WHERE user_id = $2
+	`
+	_, err := exec.ExecContext(ctx, query, passwordHash, userID)
+	return err
+}
+
+func (r *GatewayRepository) SetTransactionPIN(ctx context.Context, exec repository.Executable, userID uuid.UUID, pinHash string) error {
+	query := `
+		UPDATE users
+		SET pin_hash = $1, failed_pin_attempts = 0, pin_locked_until = NULL, updated_at = NOW()
+		WHERE user_id = $2
+	`
+	_, err := exec.ExecContext(ctx, query, pinHash, userID)
+	return err
+}
+
+func (r *GatewayRepository) IncrementFailedPINAttempts(ctx context.Context, exec repository.Executable, userID uuid.UUID) (int, error) {
+	query := `
+		UPDATE users
+		SET failed_pin_attempts = failed_pin_attempts + 1, updated_at = NOW()
+		WHERE user_id = $1
+		RETURNING failed_pin_attempts
+	`
+	var count int
+	err := exec.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
+func (r *GatewayRepository) LockTransactionPIN(ctx context.Context, exec repository.Executable, userID uuid.UUID, lockDuration time.Duration) error {
+	query := `
+		UPDATE users
+		SET pin_locked_until = $1, updated_at = NOW()
+		WHERE user_id = $2
+	`
+	lockedUntil := time.Now().UTC().Add(lockDuration)
+	_, err := exec.ExecContext(ctx, query, lockedUntil, userID)
+	return err
+}
+
+func (r *GatewayRepository) ResetFailedPINAttempts(ctx context.Context, exec repository.Executable, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET failed_pin_attempts = 0, pin_locked_until = NULL, updated_at = NOW()
+		WHERE user_id = $1
+	`
+	_, err := exec.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *GatewayRepository) RevokeUserRefreshTokens(ctx context.Context, exec repository.Executable, userID uuid.UUID) error {
+	query := `
+		UPDATE refresh_tokens
+		SET is_revoked = TRUE
+		WHERE user_id = $1
+	`
+	_, err := exec.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *GatewayRepository) LogAuthEvent(ctx context.Context, exec repository.Executable, event *gwdomain.AuthEventRecord) error {
+	query := `
+		INSERT INTO auth_events (user_id, email, event_type, ip_address, user_agent, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	ip := event.IPAddress
+	if ip == "" {
+		ip = "127.0.0.1"
+	}
+	_, err := exec.ExecContext(ctx, query, event.UserID, strings.ToLower(event.Email), event.EventType, ip, event.UserAgent, time.Now().UTC())
+	return err
 }

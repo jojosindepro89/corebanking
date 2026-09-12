@@ -16,14 +16,19 @@ const (
 )
 
 type User struct {
-	UserID       uuid.UUID `json:"user_id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Role         UserRole  `json:"role"`
-	MFASecret    string    `json:"-"`
-	MFAEnabled   bool      `json:"mfa_enabled"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	UserID              uuid.UUID  `json:"user_id"`
+	Email               string     `json:"email"`
+	PasswordHash        string     `json:"-"`
+	Role                UserRole   `json:"role"`
+	MFASecret           string     `json:"-"`
+	MFAEnabled          bool       `json:"mfa_enabled"`
+	FailedLoginAttempts int        `json:"failed_login_attempts"`
+	LockedUntil         *time.Time `json:"locked_until,omitempty"`
+	PINHash             string     `json:"-"`
+	FailedPINAttempts   int        `json:"failed_pin_attempts"`
+	PINLockedUntil      *time.Time `json:"pin_locked_until,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 type UserAccount struct {
@@ -56,6 +61,16 @@ type APIAuditRecord struct {
 	CreatedAt  time.Time  `json:"created_at"`
 }
 
+type AuthEventRecord struct {
+	EventID   int64      `json:"event_id"`
+	UserID    *uuid.UUID `json:"user_id,omitempty"`
+	Email     string     `json:"email"`
+	EventType string     `json:"event_type"`
+	IPAddress string     `json:"ip_address"`
+	UserAgent string     `json:"user_agent"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 type JWTClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -77,6 +92,11 @@ var (
 	ErrAccountOwnershipMismatch = errors.New("account does not belong to authenticated user")
 	ErrInvalidAmount            = errors.New("invalid monetary amount")
 	ErrMissingIdempotencyKey    = errors.New("idempotency key is required")
+	ErrAccountLocked            = errors.New("account is locked due to too many failed login attempts")
+	ErrPINLocked                = errors.New("transaction PIN is locked due to too many failed PIN attempts")
+	ErrInvalidPIN               = errors.New("invalid 4-digit transaction PIN")
+	ErrWeakPassword             = errors.New("password does not meet security requirements (min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char)")
+	ErrPINNotSetup              = errors.New("transaction PIN has not been setup")
 )
 
 // Request & Response DTOs
@@ -93,6 +113,23 @@ type LoginRequest struct {
 	MFACode  string `json:"mfa_code,omitempty"`
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+type SetupPINRequest struct {
+	PIN string `json:"pin"`
+}
+
+type VerifyPINRequest struct {
+	PIN string `json:"pin"`
+}
+
 type TokenResponse struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
@@ -107,6 +144,8 @@ type UserView struct {
 	Email      string    `json:"email"`
 	Role       UserRole  `json:"role"`
 	MFAEnabled bool      `json:"mfa_enabled"`
+	PINSetup   bool      `json:"pin_setup"`
+	IsLocked   bool      `json:"is_locked"`
 }
 
 type MFASetupResponse struct {

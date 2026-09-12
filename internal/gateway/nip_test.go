@@ -46,6 +46,10 @@ func setupNIPTest(t *testing.T) (*sql.DB, http.Handler, *gwservice.AuthService, 
 		t.Fatalf("Failed to connect to test database: %v", err)
 	}
 
+	if err := db.Ping(); err != nil {
+		t.Skipf("Skipping NIP integration test because PostgreSQL is unreachable: %v", err)
+	}
+
 	nipMigrateOnce.Do(func() {
 		files := []string{
 			"../../migrations/001_init_schema.sql",

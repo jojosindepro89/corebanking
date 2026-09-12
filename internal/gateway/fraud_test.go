@@ -43,6 +43,10 @@ func setupFraudTest(t *testing.T) (*sql.DB, http.Handler, *gwservice.AuthService
 		t.Fatalf("Failed to connect to test database: %v", err)
 	}
 
+	if err := db.Ping(); err != nil {
+		t.Skipf("Skipping fraud integration test because PostgreSQL is unreachable: %v", err)
+	}
+
 	fraudMigrateOnce.Do(func() {
 		files := []string{
 			"../../migrations/001_init_schema.sql",

@@ -76,13 +76,14 @@ func NewGatewayRouter(handler *GatewayHandler, dashHandler *AdminDashboardHandle
 	assetsDir := http.Dir(filepath.Join(workDir, "internal/gateway/web/assets"))
 	r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(assetsDir)))
 
-	// Public Auth Endpoints (Rate limited: 5 req/minute per IP)
+	// Public Auth Endpoints (Rate limited: 10 req/minute per IP)
 	mountAuthRoutes := func(r chi.Router) {
-		r.Use(httprate.LimitByIP(5, 1*time.Minute))
+		r.Use(httprate.LimitByIP(10, 1*time.Minute))
 
 		r.Post("/register", handler.Register)
 		r.Post("/login", handler.Login)
 		r.Post("/refresh", handler.RefreshToken)
+		r.Post("/logout", handler.Logout)
 	}
 
 	r.Route("/auth", mountAuthRoutes)
@@ -93,11 +94,20 @@ func NewGatewayRouter(handler *GatewayHandler, dashHandler *AdminDashboardHandle
 		r.Use(AuthMiddleware(authSvc))
 		r.Use(MFAHeaderExtractor())
 
-		// Authenticated MFA Setup
+		// Authenticated MFA & Session Security Endpoints
 		r.Post("/auth/mfa/setup", handler.SetupMFA)
 		r.Post("/auth/mfa/verify", handler.VerifyMFA)
+		r.Post("/auth/logout-all", handler.LogoutAll)
+		r.Post("/auth/password/change", handler.ChangePassword)
+		r.Post("/auth/pin/setup", handler.SetupPIN)
+		r.Post("/auth/pin/verify", handler.VerifyPIN)
+
 		r.Post("/api/v1/auth/mfa/setup", handler.SetupMFA)
 		r.Post("/api/v1/auth/mfa/verify", handler.VerifyMFA)
+		r.Post("/api/v1/auth/logout-all", handler.LogoutAll)
+		r.Post("/api/v1/auth/password/change", handler.ChangePassword)
+		r.Post("/api/v1/auth/pin/setup", handler.SetupPIN)
+		r.Post("/api/v1/auth/pin/verify", handler.VerifyPIN)
 
 		// Account Management (Rate limited: 60 req/minute per IP)
 		mountAccountRoutes := func(r chi.Router) {

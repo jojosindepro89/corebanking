@@ -139,6 +139,7 @@ func runMigrations(db *sql.DB) {
 		"migrations/005_fraud_monitoring.sql",
 		"migrations/006_core_banking_expansion.sql",
 		"migrations/007_card_issuance.sql",
+		"migrations/008_auth_enhancements.sql",
 	}
 
 	for _, file := range files {
