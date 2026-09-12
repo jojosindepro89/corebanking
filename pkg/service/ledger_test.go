@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"core-banking-ledger/internal/domain"
-	"core-banking-ledger/internal/repository"
-	"core-banking-ledger/internal/service"
+	"core-banking-ledger/pkg/domain"
+	"core-banking-ledger/pkg/repository"
+	"core-banking-ledger/pkg/service"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"

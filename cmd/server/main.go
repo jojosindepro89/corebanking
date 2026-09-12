@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"core-banking-ledger/internal/api"
-	"core-banking-ledger/internal/repository"
-	"core-banking-ledger/internal/service"
+	"core-banking-ledger/pkg/api"
+	"core-banking-ledger/pkg/repository"
+	"core-banking-ledger/pkg/service"
 
 	_ "github.com/lib/pq"
 )

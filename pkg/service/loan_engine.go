@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	"core-banking-ledger/internal/domain"
-	"core-banking-ledger/internal/repository"
+	"core-banking-ledger/pkg/domain"
+	"core-banking-ledger/pkg/repository"
 
 	"github.com/google/uuid"
 )

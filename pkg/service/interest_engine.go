@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"core-banking-ledger/internal/domain"
-	"core-banking-ledger/internal/repository"
+	"core-banking-ledger/pkg/domain"
+	"core-banking-ledger/pkg/repository"
 
 	"github.com/google/uuid"
 )
@@ -120,6 +120,16 @@ func (ie *InterestEngine) PostAccruedInterestBatch(ctx context.Context, expenseA
 			continue
 		}
 
+		targetAcc, err := ie.ledgerService.GetBalance(ctx, accID)
+		if err != nil || targetAcc == nil {
+			continue
+		}
+
+		expAcc, err := ie.ledgerService.GetBalance(ctx, expenseAccountID)
+		if err != nil || expAcc == nil || expAcc.Currency != targetAcc.Currency {
+			continue // Skip accounts with currency mismatch relative to the provided expense account
+		}
+
 		idempotencyKey := fmt.Sprintf("eom_interest_%s_%d", accID, time.Now().UnixNano())
 		entries := []domain.PostEntryInput{
 			{
@@ -134,7 +144,7 @@ func (ie *InterestEngine) PostAccruedInterestBatch(ctx context.Context, expenseA
 			},
 		}
 
-		_, err := ie.ledgerService.PostTransaction(ctx, idempotencyKey, "End of Month Interest Posting", entries, actor)
+		_, err = ie.ledgerService.PostTransaction(ctx, idempotencyKey, "End of Month Interest Posting", entries, actor)
 		if err != nil {
 			return postedCount, fmt.Errorf("failed posting interest transaction for account %s: %w", accID, err)
 		}

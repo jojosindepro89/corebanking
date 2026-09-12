@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"core-banking-ledger/internal/domain"
+	"core-banking-ledger/pkg/domain"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"

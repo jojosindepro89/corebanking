@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -9,16 +9,16 @@ import (
 	"sync"
 	"time"
 
-	coreRepo "core-banking-ledger/internal/repository"
-	coreService "core-banking-ledger/internal/service"
+	coreRepo "core-banking-ledger/pkg/repository"
+	coreService "core-banking-ledger/pkg/service"
 	"core-banking-ledger/migrations"
 
-	gwapi "core-banking-ledger/internal/gateway/api"
-	gwdomain "core-banking-ledger/internal/gateway/domain"
-	gwrepo "core-banking-ledger/internal/gateway/repository"
-	gwservice "core-banking-ledger/internal/gateway/service"
-	fraudSvc "core-banking-ledger/internal/gateway/service/fraud"
-	nipSvc "core-banking-ledger/internal/gateway/service/nip"
+	gwapi "core-banking-ledger/pkg/gateway/api"
+	gwdomain "core-banking-ledger/pkg/gateway/domain"
+	gwrepo "core-banking-ledger/pkg/gateway/repository"
+	gwservice "core-banking-ledger/pkg/gateway/service"
+	fraudSvc "core-banking-ledger/pkg/gateway/service/fraud"
+	nipSvc "core-banking-ledger/pkg/gateway/service/nip"
 
 	_ "github.com/lib/pq"
 )
@@ -140,6 +140,4 @@ func runMigrations(db *sql.DB) {
 		}
 	}
 }
-
-func main() {}
 

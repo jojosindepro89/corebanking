@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"core-banking-ledger/internal/domain"
-	"core-banking-ledger/internal/repository"
-	"core-banking-ledger/internal/service"
+	"core-banking-ledger/pkg/domain"
+	"core-banking-ledger/pkg/repository"
+	"core-banking-ledger/pkg/service"
 
 	"github.com/google/uuid"
 )
@@ -72,6 +72,8 @@ func TestExpansion_LoanEngineOriginationAndRepayment(t *testing.T) {
 	loanEngine := service.NewLoanEngine(repo, ledgerSvc)
 
 	userID := uuid.New()
+	_, _ = db.Exec("INSERT INTO users (user_id, email, password_hash, role, created_at, updated_at) VALUES ($1, $2, 'hash', 'user', NOW(), NOW()) ON CONFLICT DO NOTHING", userID, fmt.Sprintf("user_%s@test.com", userID.String()[:8]))
+
 	borrowerAcc, _ := ledgerSvc.CreateAccount(ctx, "Borrower Account", domain.AccountTypeAsset, "USD", "borrower")
 	vaultAcc, _ := ledgerSvc.CreateAccount(ctx, "Bank Vault", domain.AccountTypeAsset, "USD", "bank")
 	loanAssetAcc, _ := ledgerSvc.CreateAccount(ctx, "Loan Portfolio Asset", domain.AccountTypeAsset, "USD", "bank")
@@ -120,8 +122,10 @@ func TestExpansion_StandingOrdersExecution(t *testing.T) {
 	standingEngine := service.NewStandingOrderEngine(repo, ledgerSvc)
 
 	userID := uuid.New()
+	_, _ = db.Exec("INSERT INTO users (user_id, email, password_hash, role, created_at, updated_at) VALUES ($1, $2, 'hash', 'user', NOW(), NOW()) ON CONFLICT DO NOTHING", userID, fmt.Sprintf("user_%s@test.com", userID.String()[:8]))
+
 	srcAcc, _ := ledgerSvc.CreateAccount(ctx, "Salary Checking", domain.AccountTypeAsset, "USD", "user")
-	dstAcc, _ := ledgerSvc.CreateAccount(ctx, "Auto Savings Sweep", domain.AccountTypeLiability, "USD", "user")
+	dstAcc, _ := ledgerSvc.CreateAccount(ctx, "Auto Savings Sweep", domain.AccountTypeAsset, "USD", "user")
 
 	order := &domain.StandingOrder{
 		UserID:               userID,
@@ -155,10 +159,12 @@ func TestExpansion_BulkPayoutBatchProcessing(t *testing.T) {
 	standingEngine := service.NewStandingOrderEngine(repo, ledgerSvc)
 
 	userID := uuid.New()
+	_, _ = db.Exec("INSERT INTO users (user_id, email, password_hash, role, created_at, updated_at) VALUES ($1, $2, 'hash', 'user', NOW(), NOW()) ON CONFLICT DO NOTHING", userID, fmt.Sprintf("user_%s@test.com", userID.String()[:8]))
+
 	corporateAcc, _ := ledgerSvc.CreateAccount(ctx, "Corporate Payroll Vault", domain.AccountTypeAsset, "USD", "corp")
 
-	emp1, _ := ledgerSvc.CreateAccount(ctx, "Employee 1", domain.AccountTypeLiability, "USD", "emp1")
-	emp2, _ := ledgerSvc.CreateAccount(ctx, "Employee 2", domain.AccountTypeLiability, "USD", "emp2")
+	emp1, _ := ledgerSvc.CreateAccount(ctx, "Employee 1", domain.AccountTypeAsset, "USD", "emp1")
+	emp2, _ := ledgerSvc.CreateAccount(ctx, "Employee 2", domain.AccountTypeAsset, "USD", "emp2")
 
 	batch := &domain.BulkPayoutBatch{
 		UserID:          userID,

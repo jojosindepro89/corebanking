@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"core-banking-ledger/internal/domain"
-	"core-banking-ledger/internal/service"
+	"core-banking-ledger/pkg/domain"
+	"core-banking-ledger/pkg/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
