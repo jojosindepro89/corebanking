@@ -9,3 +9,4 @@ server
 *.test
 *.out
 .DS_Store
+.vercel
